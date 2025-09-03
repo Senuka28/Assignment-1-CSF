@@ -13,6 +13,22 @@
 
 // TODO: add helper functions
 
+int count_digs(int n) {
+  if (n == 0) {
+    return 1;
+  }
+  if (n < 0) {
+    n = -n;
+  }
+
+  int count = 0;
+  while (n > 0) {
+    n /= 10;
+    count++;
+  }
+  return count;
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Public API functions
 ////////////////////////////////////////////////////////////////////////
@@ -56,13 +72,27 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
   //if same then just add all the values and keep same sign
   //if different then find bigger whole and subtract smaller from bigger number
   //if wholes are both zero then do that with the fractions
-  if (left->negative == right->negative) { // same sign
+  if (left->negative == right->negative) { // case 1: same sign
     uint32_t frac_add = left->frac + right->frac;
-    // check if frac_add overflows
+    // check if frac_add overflows 
     uint32_t carry;
     uint32_t whole_add = left->whole + right->whole + carry; 
     result->frac = frac_add;
     result->whole = whole_add;
+    //if overflow/ok
+  } else { // case 2: different sign
+    if (left->whole < right->whole) {
+      // if the right fraction bigger than left then you are good
+      if (right->frac > left->frac) { // case 2.1: right fraction larger
+        result->frac = right->frac - left->frac;
+        result->whole = right->whole - left->whole;
+      } else { // case 2.2: left fraction larger
+        result->whole = right->whole - left->whole - 1;
+
+      }
+      // if not then you have to account for carry
+
+    }
   }
 }
 
