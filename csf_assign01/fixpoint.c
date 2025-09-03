@@ -54,12 +54,17 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
   //if same then just add all the values and keep same sign
   //if different then find bigger whole and subtract smaller from bigger number
   //if wholes are both zero then do that with the fractions
-  //
+  
 }
 
 result_t
 fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
   // TODO: implement
+  // take add function from above and negate the right side 
+  // a - b is same as a + (-b)
+  fixpoint_t right_side = *right;
+  fixpoint_negate(&right_side);
+  return fixpoint_add(result, left, &right_side);
 }
 
 result_t
