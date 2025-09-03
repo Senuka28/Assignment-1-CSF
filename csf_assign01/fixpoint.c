@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <cstdint>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include "fixpoint.h"
@@ -54,7 +56,14 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
   //if same then just add all the values and keep same sign
   //if different then find bigger whole and subtract smaller from bigger number
   //if wholes are both zero then do that with the fractions
-  
+  if (left->negative == right->negative) { // same sign
+    uint32_t frac_add = left->frac + right->frac;
+    // check if frac_add overflows
+    uint32_t carry;
+    uint32_t whole_add = left->whole + right->whole + carry; 
+    result->frac = frac_add;
+    result->whole = whole_add;
+  }
 }
 
 result_t
