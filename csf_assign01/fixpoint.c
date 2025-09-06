@@ -69,6 +69,28 @@ fixpoint_negate( fixpoint_t *val ) {
 
 result_t
 fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
+  
+  if (left->negative == right->negative) { //Case 1: signs same
+    uint64_t frac_sum = left->frac + right->frac; 
+    uint64_t result_frac = frac_sum & ((1 << 32) - 1);
+    uint32_t carry = frac_sum >> 32;
+
+    uint64_t whole_sum = left->whole + right->whole;
+    uint32_t result_whole = whole_sum & ((1 << 32) - 1);
+    
+    result->whole = result_whole;
+    result->frac = result_frac;
+
+    if (whole_sum > UINT32_MAX) {
+      return RESULT_OVERFLOW;
+    }
+    else{
+      return RESULT_OK;
+    }
+
+  }
+  
+  
   //check if signs are same
   //if same then just add all the values and keep same sign
   //if different then find bigger whole and subtract smaller from bigger number
