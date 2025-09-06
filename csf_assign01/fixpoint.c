@@ -75,11 +75,12 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
     uint64_t result_frac = frac_sum & ((1 << 32) - 1);
     uint32_t carry = frac_sum >> 32;
 
-    uint64_t whole_sum = left->whole + right->whole;
+    uint64_t whole_sum = left->whole + right->whole + carry;
     uint32_t result_whole = whole_sum & ((1 << 32) - 1);
     
     result->whole = result_whole;
     result->frac = result_frac;
+    result->negative = left->negative;
 
     if (whole_sum > UINT32_MAX) {
       return RESULT_OVERFLOW;
@@ -90,39 +91,6 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
 
   }
   
-  
-  //check if signs are same
-  //if same then just add all the values and keep same sign
-  //if different then find bigger whole and subtract smaller from bigger number
-  //if wholes are both zero then do that with the fractions
-  /*if (left->negative == right->negative) { // case 1: same sign
-    uint32_t frac_add = left->frac + right->frac;
-    // check if frac_add overflows 
-    uint32_t carry;
-    uint32_t whole_add = left->whole + right->whole + carry; 
-    result->frac = frac_add;
-    result->whole = whole_add;
-    if ( > UINT32_MAX) {
-      return RESULT_OVERFLOW;
-    } else {
-      return RESULT_OK
-    }
-    //if overflow/ok
-  } else { // case 2: different sign
-    if (left->whole < right->whole) {
-      // if the right fraction bigger than left then you are good
-      if (right->frac > left->frac) { // case 2.1: right fraction larger
-        result->frac = right->frac - left->frac;
-        result->whole = right->whole - left->whole;
-      } else { // case 2.2: left fraction larger
-        result->whole = right->whole - left->whole - 1;
-        if ()
-        count_digs(result)
-      }
-      // if not then you have to account for carry
-
-    }
-  }*/
 }
 
 result_t
