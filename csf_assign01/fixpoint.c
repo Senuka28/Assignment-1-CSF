@@ -108,7 +108,7 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
       }
       else{ //case 4: left whole > right, left frac < right
         result->whole = left->whole - right->whole - 1;
-        result->frac = left->frac + 1 - right->frac;
+        result->frac = (uint64_t)left->frac + (1ULL << 32) - right->frac;
         result->negative = left->negative;
         return RESULT_OK;
       }
@@ -120,9 +120,14 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
         result->negative = right->negative;
         return RESULT_OK;
       }
+      else{ //case 6: right whole > left, left frac < right
+        result->whole = right->whole - left->whole - 1;
+        result->frac = (uint64_t)right->frac + (1ULL << 32) - left->frac;
+        result->negative = right->negative;
+        return RESULT_OK;
+      }
+
     }
-
-
   }
 }
 
