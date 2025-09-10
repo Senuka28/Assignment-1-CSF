@@ -86,11 +86,13 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
       result->frac = left->frac - right->frac;
       result->whole = 0;
       result->negative = left->negative;
+      return RESULT_OK;
       }
       if(right->frac > left->frac){ //case 2.2 right frac greater
       result->frac = right->frac - left->frac;
       result->whole = 0;
       result->negative = right->negative;
+      return RESULT_OK;
       }
     }
     if (left->whole > right->whole){ 
@@ -161,25 +163,30 @@ fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
 
 void
 fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
-    char whole[32];
-    char fraction[32];
+    char whole[9];
+    char fraction[9];
     if(val->whole == 0){
       strcpy(whole, "0");
     } else {
-      snprintf(whole, sizeof(whole), "%X", val->whole);
+      snprintf(whole, sizeof(whole), "%x", val->whole);
     }
 
-    snprintf(fraction, sizeof(fraction), "%08X", val->frac);
+    //remove trailing 0s
+    snprintf(fraction, sizeof(fraction), "%08x", val->frac);
     int len = strlen(fraction);
     while(len > 1 && fraction[len - 1] == '0'){
       fraction[--len] = '\0';
     }
 
+    //remove leading 0s
+
+
+
     if (len == 1 && fraction[0] == '0') {
         if (val->negative) {
-            snprintf(s->str, sizeof(s->str), "-%s", whole);
+            snprintf(s->str, sizeof(s->str), "-%s.0", whole);
         } else {
-            snprintf(s->str, sizeof(s->str), "%s", whole);
+            snprintf(s->str, sizeof(s->str), "%s.0", whole);
         }
     } else {
         if (val->negative) {
