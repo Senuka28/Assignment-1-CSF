@@ -72,14 +72,12 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
   
   if (left->negative == right->negative) { //Case 1: signs same
     
-    
-    
-    uint64_t frac_sum = left->frac + right->frac; 
-    uint64_t result_frac = frac_sum & ((1ULL << 32) - 1);
+    uint64_t frac_sum = (uint64_t)left->frac + (uint64_t)right->frac; 
+    uint32_t result_frac = (uint32_t)(frac_sum & ((1ULL << 32) - 1));
     uint32_t carry = frac_sum >> 32;
 
-    uint64_t whole_sum = left->whole + right->whole + carry;
-    uint32_t result_whole = whole_sum & ((1 << 32) - 1);
+    uint64_t whole_sum = (uint64_t)left->whole + (uint64_t)right->whole + carry;
+    uint32_t result_whole = (uint32_t)(whole_sum & ((1ULL << 32) - 1));
     
     result->whole = result_whole;
     result->frac = result_frac;
@@ -110,8 +108,6 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
       result->whole = 0;
       result->negative = right->negative;
       }
-
-
     }
     if (left->whole > right->whole){ 
       if(left->frac >= right->frac){ //case 3: left whole and frac > right
@@ -140,7 +136,6 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
         result->negative = right->negative;
         return RESULT_OK;
       }
-
     }
   }
 }
