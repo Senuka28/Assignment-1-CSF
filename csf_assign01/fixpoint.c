@@ -145,11 +145,9 @@ fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
   // TODO: implement
   // take add function from above and negate the right side 
   // a - b is same as a + (-b)
-  /*
   fixpoint_t negated_right = *right;
   fixpoint_negate(&negated_right);
   return fixpoint_add(result, left, &negated_right);
-  */
 }
 
 result_t
