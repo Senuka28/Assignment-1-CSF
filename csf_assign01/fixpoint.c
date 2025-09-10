@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "fixpoint.h"
-#include <cstring>
 
 ////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -136,31 +135,7 @@ fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
 
 result_t
 fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
-  uint64_t left_val = ((uint64_t) left->whole << 32) | left->frac;
-  uint64_t right_val = ((uint64_t) right->whole << 32) | right->frac;
-
-  uint128_t multiplication = (uint128_t) left_val * (uint128_t) right_val; // 128-bit product representation
-  uint64_t middle = (uint64_t) (multiplication << 32); // take the middle 64
-
-  // here shift middle 64 bits into result frac/whole and determine negativity
-  result->whole = (uint32_t) (middle >> 32);
-  result->frac = (uint32_t) (middle << 32);
-  result->negative = (left->negative != right->negative);
-
-  uint32_t low = (uint32_t) (multiplication >> 96);
-  uint32_t high = (uint32_t) (multiplication << 96);
-  if (high) {
-    return RESULT_OVERFLOW; // high 32 bits not 0
-  }
-  if (low) {
-    return RESULT_UNDERFLOW; // low 32 bits not 0
-  }
-
-  if (result->whole == 0 && result->frac == 0) {
-    result->negative = false; // false because 0 isn't negative
-  }
-
-  return RESULT_OK;
+  
 }
 
 int
@@ -189,20 +164,20 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
     char whole[32];
     char fraction[32];
     if(val->whole == 0){
-      strcpy(whole_str, "0");
+      strcpy(whole, "0");
     } else {
-      snprint(whole, sizeof(whole_str), "%X", val->whole);
+      snprint(whole, sizeof(whole), "%X", val->whole);
     }
 
-    snprintf(fraction, sizeof(frac_str), "%08X", val->frac);
-    while(strlen(fraction) > 1 && fraction[strlen(fraction) - 1]) == '0'){
+    snprintf(fraction, sizeof(fraction), "%08X", val->frac);
+    while(strlen(fraction) > 1 && fraction[strlen(fraction) - 1] == '0'){
       fraction[strlen(fraction) - 1] = '\0';
     }
 
     if (val->negative){
-      snprintf(s->buf, sizeof(s->buf), "-%s.%s", whole_str, frac_str);
+      snprintf(s, sizeof(s->str), "-%s.%s", whole, fraction);
     } else {
-        snprintf(s->buf, sizeof(s->buf), "%s.%s", whole_str, frac_str);
+        snprintf(s, sizeof(s->str), "%s.%s", whole, fraction);
     }
 
 }
