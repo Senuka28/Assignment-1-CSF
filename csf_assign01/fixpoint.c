@@ -166,7 +166,7 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
     if(val->whole == 0){
       strcpy(whole, "0");
     } else {
-      snprint(whole, sizeof(whole), "%X", val->whole);
+      snprintf(whole, sizeof(whole), "%X", val->whole);
     }
 
     snprintf(fraction, sizeof(fraction), "%08X", val->frac);
@@ -175,9 +175,9 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
     }
 
     if (val->negative){
-      snprintf(s, sizeof(s->str), "-%s.%s", whole, fraction);
+      snprintf(s->str, sizeof(s->str), "-%s.%s", whole, fraction);
     } else {
-        snprintf(s, sizeof(s->str), "%s.%s", whole, fraction);
+        snprintf(s->str, sizeof(s->str), "%s.%s", whole, fraction);
     }
 
 }
