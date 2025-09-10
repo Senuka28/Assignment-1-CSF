@@ -157,7 +157,23 @@ fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
 
 int
 fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
-  // TODO: implement
+  if(left->whole > right-> whole){
+    return 1;
+  }
+  if(left->whole < right->whole){
+    return -1;
+  }
+  if(left->whole == right->whole){
+    if(left->frac > right->frac){
+      return 1;
+    }
+    if(left->frac < right->frac){
+      return -1;
+    }
+    if(left->frac == right->frac){
+      return 0;
+    }
+  }
 }
 
 void
