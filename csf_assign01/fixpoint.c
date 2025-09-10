@@ -178,10 +178,6 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
       fraction[--len] = '\0';
     }
 
-    //remove leading 0s
-
-
-
     if (len == 1 && fraction[0] == '0') {
         if (val->negative) {
             snprintf(s->str, sizeof(s->str), "-%s.0", whole);
@@ -200,5 +196,41 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
 
 bool
 fixpoint_parse_hex( fixpoint_t *val, const fixpoint_str_t *s ) {
-  // TODO: implement
+  if (val == NULL || s == NULL || s->str == NULL) {
+        return false;
+    }
+
+  int whole;
+  int fraction;
+  const char *str = s->str;
+
+  if(*str == '-'){
+    val->negative = true;
+    str++;
+  }
+
+  if(sscanf(str, "%8x", &whole) != 1){
+    return false;
+  }
+  val->whole = whole;
+
+  //find decimal
+  const char *decimal_pos = strchr(str, '.');
+  if (decimal_pos == NULL) {
+    return false;
+  }
+
+  const char *fraction_str = decimal_pos + 1;
+  if(*fraction_str == '\0'){
+    return false;
+  }
+
+  int frac_digits = 0;
+  if (sscanf(fraction_str, "%8x%n", &fraction, &frac_digits) != 1 || frac_digits == 0 || frac_digits > 8) {
+    return false;
+  }
+  val->frac = fraction << (4 * (8 - frac_digits)); 
+    
+  return true;
+
 }
