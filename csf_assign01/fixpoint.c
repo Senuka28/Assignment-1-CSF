@@ -175,10 +175,18 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
       fraction[--len] = '\0';
     }
 
-    if (val->negative){
-      snprintf(s->str, sizeof(s->str), "-%s.%s", whole, fraction);
+    if (len == 1 && fraction[0] == '0') {
+        if (val->negative) {
+            snprintf(s->str, sizeof(s->str), "-%s", whole);
+        } else {
+            snprintf(s->str, sizeof(s->str), "%s", whole);
+        }
     } else {
-        snprintf(s->str, sizeof(s->str), "%s.%s", whole, fraction);
+        if (val->negative) {
+            snprintf(s->str, sizeof(s->str), "-%s.%s", whole, fraction);
+        } else {
+            snprintf(s->str, sizeof(s->str), "%s.%s", whole, fraction);
+        }
     }
 
 }
