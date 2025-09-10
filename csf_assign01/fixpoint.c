@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "fixpoint.h"
+#include <cstring>
 
 ////////////////////////////////////////////////////////////////////////
 // Helper functions
@@ -10,22 +11,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 // TODO: add helper functions
-
-/*int count_digs(int n) {
-  if (n == 0) {
-    return 1;
-  }
-  if (n < 0) {
-    n = -n;
-  }
-
-  int count = 0;
-  while (n > 0) {
-    n /= 10;
-    count++;
-  }
-  return count;
-}*/
 
 ////////////////////////////////////////////////////////////////////////
 // Public API functions
@@ -178,7 +163,25 @@ fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
 
 void
 fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
-  // TODO: implement
+    char whole[32];
+    char fraction[32];
+    if(val->whole == 0){
+      strcpy(whole_str, "0");
+    } else {
+      snprint(whole, sizeof(whole_str), "%X", val->whole);
+    }
+
+    snprintf(fraction, sizeof(frac_str), "%08X", val->frac);
+    while(strlen(fraction) > 1 && fraction[strlen(fraction) - 1]) == '0'){
+      fraction[strlen(fraction) - 1] = '\0';
+    }
+
+    if (val->negative){
+      snprintf(s->buf, sizeof(s->buf), "-%s.%s", whole_str, frac_str);
+    } else {
+        snprintf(s->buf, sizeof(s->buf), "%s.%s", whole_str, frac_str);
+    }
+
 }
 
 bool
