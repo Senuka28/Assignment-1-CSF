@@ -127,7 +127,6 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
 
 result_t
 fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
-  // TODO: implement
   // take add function from above and negate the right side 
   // a - b is same as a + (-b)
   fixpoint_t negated_right = *right;
@@ -137,7 +136,31 @@ fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
 
 result_t
 fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
-  // TODO: implement
+  uint64_t left_val = ((uint64_t) left->whole << 32) | left->frac;
+  uint64_t right_val = ((uint64_t) right->whole << 32) | right->frac;
+
+  uint128_t multiplication = (uint128_t) left_val * (uint128_t) right_val; // 128-bit product representation
+  uint64_t middle = (uint64_t) (multiplication << 32); // take the middle 64
+
+  // here shift middle 64 bits into result frac/whole and determine negativity
+  result->whole = (uint32_t) (middle >> 32);
+  result->frac = (uint32_t) (middle << 32);
+  result->negative = (left->negative != right->negative);
+
+  uint32_t low = (uint32_t) (multiplication >> 96);
+  uint32_t high = (uint32_t) (multiplication << 96);
+  if (high) {
+    return RESULT_OVERFLOW; // high 32 bits not 0
+  }
+  if (low) {
+    return RESULT_UNDERFLOW; // low 32 bits not 0
+  }
+
+  if (result->whole == 0 && result->frac == 0) {
+    result->negative = false; // false because 0 isn't negative
+  }
+
+  return RESULT_OK;
 }
 
 int
