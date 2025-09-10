@@ -170,8 +170,9 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
     }
 
     snprintf(fraction, sizeof(fraction), "%08X", val->frac);
-    while(strlen(fraction) > 1 && fraction[strlen(fraction) - 1] == '0'){
-      fraction[strlen(fraction) - 1] = '\0';
+    int len = strlen(fraction);
+    while(len > 1 && fraction[len - 1] == '0'){
+      fraction[--len] = '\0';
     }
 
     if (val->negative){
