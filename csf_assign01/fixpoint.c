@@ -75,7 +75,7 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
     
     
     uint64_t frac_sum = left->frac + right->frac; 
-    uint64_t result_frac = frac_sum & ((1 << 32) - 1);
+    uint64_t result_frac = frac_sum & ((1ULL << 32) - 1);
     uint32_t carry = frac_sum >> 32;
 
     uint64_t whole_sum = left->whole + right->whole + carry;
@@ -85,7 +85,7 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
     result->frac = result_frac;
     result->negative = left->negative;
 
-    if (whole_sum > UINT32_MAX) {
+    if (whole_sum >> 32) {
       return RESULT_OVERFLOW;
     }
     else{
@@ -93,11 +93,25 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
     }
 
   } else {
-    if (left->whole == right->whole && left->frac == right->frac){ //case 2, same #
+    if (left->whole == right->whole){ //case 2, same #
+      if(left->frac == right->frac){
       result->frac = 0;
       result->whole = 0;
       result->negative = false;
       return RESULT_OK;
+      }
+      if(left->frac > right->frac){ //case 2.1 left frac greater
+      result->frac = left->frac - right->frac;
+      result->whole = 0;
+      result->negative = left->negative;
+      }
+      if(right->frac > left->frac){ //case 2.2 right frac greater
+      result->frac = right->frac - left->frac;
+      result->whole = 0;
+      result->negative = right->negative;
+      }
+
+
     }
     if (left->whole > right->whole){ 
       if(left->frac >= right->frac){ //case 3: left whole and frac > right
