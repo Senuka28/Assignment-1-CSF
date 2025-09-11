@@ -264,27 +264,31 @@ fixpoint_parse_hex( fixpoint_t *val, const fixpoint_str_t *s ) {
         return false;
     }
 
-  int whole;
-  int fraction;
+  unsigned int whole;
+  unsigned int fraction;
   const char *str = s->str;
 
+  //handle negative sign
   if(*str == '-'){
     val->negative = true;
     str++;
   }
+  else{
+    val->negative = false;
+  }
 
-  if(sscanf(str, "%8x", &whole) != 1){
+  int whole_digits = 0;
+  if(sscanf(str, "%8x%n", &whole, &whole_digits) != 1 || whole_digits == 0 || whole_digits > 8){
     return false;
   }
   val->whole = whole;
 
-  //find decimal
-  const char *decimal_pos = strchr(str, '.');
-  if (decimal_pos == NULL) {
-    return false;
+  if (str[whole_digits] != '.') {
+        return false;
   }
 
-  const char *fraction_str = decimal_pos + 1;
+  const char *fraction_str = str + whole_digits + 1; 
+  
   if(*fraction_str == '\0'){
     return false;
   }
@@ -293,7 +297,12 @@ fixpoint_parse_hex( fixpoint_t *val, const fixpoint_str_t *s ) {
   if (sscanf(fraction_str, "%8x%n", &fraction, &frac_digits) != 1 || frac_digits == 0 || frac_digits > 8) {
     return false;
   }
-  val->frac = fraction << (4 * (8 - frac_digits)); 
+
+  if(frac_digits > 0 && frac_digits <= 8){
+    val->frac = fraction << (4 * (8 - frac_digits)); 
+  } else {
+    val->frac = 0;
+  }
     
   return true;
 
