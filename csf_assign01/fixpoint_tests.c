@@ -360,3 +360,9 @@ void test_parse_hex( TestObjs *objs ) {
 }
 
 // TODO: define additional test functions
+
+void test_another_add( TestObjs *objs ) {
+  fixpoint_t result;
+
+  
+}

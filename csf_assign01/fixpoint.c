@@ -36,11 +36,11 @@ static uint128_sim mul64(uint64_t a, uint64_t b) {
 
 
    // accumulate the results into 128 bits
-   uint64_t middle = (p0 >> 32) + (p1 & 0xFFFFFFFFULL) + (p2 & 0xFFFFFFFFULL);
+   uint64_t middle = (product0 >> 32) + (product1 & 0xFFFFFFFFULL) + (product2 & 0xFFFFFFFFULL);
 
 
-   res.lo = (p0 & 0xFFFFFFFFULL) | (mid << 32);
-   res.hi = p3 + (p1 >> 32) + (p2 >> 32) + (mid >> 32);
+   res.lo = (product0 & 0xFFFFFFFFULL) | (middle << 32);
+   res.hi = product3 + (product1 >> 32) + (product2 >> 32) + (middle >> 32);
 
 
    return res;
@@ -177,21 +177,20 @@ fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
  uint64_t left_val = ((uint64_t) left->whole << 32) | left->frac;
  uint64_t right_val = ((uint64_t) right->whole << 32) | right->frac;
 
-
  uint128_sim multiplication = mul64(left_val, right_val); // 128-bit product representation
- uint64_t middle = (multiplication.hi << 32) | (multiplication.low >> 32); // take the middle 64
+ uint64_t middle = (multiplication.hi << 32) | (multiplication.lo >> 32); // take the middle 64
 
 
  // here shift middle 64 bits into result frac/whole and determine negativity
  result->whole = (uint32_t) (middle >> 32);
- result->frac = (uint32_t) (middle << 32);
+ result->frac = (uint32_t) (middle & 0xFFFFFFFFULL);
  result->negative = (left->negative != right->negative);
 
 
   if (multiplication.hi >> 32) {
    return RESULT_OVERFLOW; // high 32 bits not 0
  }
- if (multiplication.lo << 32) {
+ if ((multiplication.lo & 0xFFFFFFFFULL) != 0) {
    return RESULT_UNDERFLOW; // low 32 bits not 0
  }
 
