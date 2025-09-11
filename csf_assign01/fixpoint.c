@@ -164,6 +164,8 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
       }
     }
   }
+  return RESULT_OK;
+
 }
 
 // Subtract right from left by negating right and adding.
@@ -240,6 +242,8 @@ fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
       return 0;
     }
   }
+
+  return 0;
 }
 
 // Format a fixpoint value as a hexadecimal string.
