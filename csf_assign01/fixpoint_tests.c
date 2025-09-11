@@ -362,7 +362,54 @@ void test_parse_hex( TestObjs *objs ) {
 // TODO: define additional test functions
 
 void test_another_add( TestObjs *objs ) {
-  fixpoint_t result;
+  fixpoint_t aggregate;
 
-  
+  // test for cases of same magnitude but opposite sign -> 0
+  fixpoint_t negative_one = objs->one;
+  negative_one.negative = true;
+  ASSERT(fixpoint_add(&aggregate, &objs->one, &negative_one) == RESULT_OK);
+  ASSERT(aggregate.frac == 0 && aggregate.whole == 0 && aggregate.negative == false); // check if 0 here
 }
+
+void test_another_sub( TestObjs *objs ) {
+  fixpoint_t aggregate;
+
+
+}
+
+void test_another_mul( TestObjs *objs ) {
+
+}
+
+void test_another_compare( TestObjs *objs ) {
+  fixpoint_t a;
+  fixpoint_t b;
+
+  TEST_FIXPOINT_INIT(&a, 1, 0x40000000, false); // this is 1.25
+  TEST_FIXPOINT_INIT(&b, 1, 0x20000000, false); // and this is 1.125
+  
+  ASSERT(fixpoint_compare(&a, &b) == 1);
+  ASSERT(fixpoint_compare(&b, &a) == -1);
+
+  // then test negative vs positive
+  ASSERT(fixpoint_compare(&objs->neg_eleven, &objs->one) == -1);
+
+  // check equal negatives next
+  fixpoint_t neg_eleven2 = objs->neg_eleven;
+  ASSERT(fixpoint_compare(&objs->neg_eleven, &neg_eleven2) == 0);
+}
+
+void test_another_format_hex( TestObjs *objs ) {
+  fixpoint_str_t string;
+
+  fixpoint_t value;
+  TEST_FIXPOINT_INIT(&value, 0, 0x40000000, false); // this is 0.4
+  fixpoint_format_hex(&string, &value);
+  ASSERT(strcmp(string.str, "0.4") == 0);
+
+  // this is for negative integer
+  fixpoint_format_hex(&string, &objs->neg_eleven);
+  ASSERT(strcmp(string.str, "-b.0") == 0);
+}
+
+
