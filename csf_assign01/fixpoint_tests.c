@@ -361,10 +361,97 @@ void test_parse_hex( TestObjs *objs ) {
 
 // TODO: define additional test functions
 
+void test_another_init( TestObjs *objs ) {
+  fixpoint_t val;
+
+  // Test 1: Zero with negative true (should force false)
+  fixpoint_init( &val, 0, 0, true );
+  ASSERT( val.whole == 0 );
+  ASSERT( val.frac == 0 );
+  ASSERT( val.negative == false );
+
+  // Test 2: Maximum values
+  fixpoint_init( &val, 0xFFFFFFFF, 0xFFFFFFFF, false );
+  ASSERT( val.whole == 0xFFFFFFFF );
+  ASSERT( val.frac == 0xFFFFFFFF );
+  ASSERT( val.negative == false );
+
+
+}
+
+void test_another_get_whole( TestObjs *objs ) {
+  // Test 1: Maximum whole value
+  fixpoint_t max_whole;
+  fixpoint_init( &max_whole, 0xFFFFFFFF, 0x80000000, false );
+  ASSERT( fixpoint_get_whole( &max_whole ) == 0xFFFFFFFF );
+
+  // Test 2: Minimum whole
+  fixpoint_t min_whole;
+  fixpoint_init( &min_whole, 1, 0x80000000, false );
+  ASSERT( fixpoint_get_whole( &min_whole ) == 1 );
+}
+
+void test_another_get_frac( TestObjs *objs) {
+  // Test 1: Maximum fraction value
+  fixpoint_t max_frac;
+  fixpoint_init( &max_frac, 0, 0xFFFFFFFF, false );
+  ASSERT( fixpoint_get_frac( &max_frac ) == 0xFFFFFFFF );
+
+  // Test 2: Minimum fraction value (1)
+  fixpoint_t min_frac;
+  fixpoint_init( &min_frac, 0, 1, false );
+  ASSERT( fixpoint_get_frac( &min_frac ) == 1 );
+}
+
+void test_another_is_negative( TestObjs *objs) {
+  fixpoint_t val;
+  
+  // Test 1: Zero should never be negative
+  fixpoint_init( &val, 0, 0, true );
+  ASSERT( fixpoint_is_negative( &val ) == false );
+
+  // Test 2: Maximum positive value
+  fixpoint_init( &val, 0xFFFFFFFF, 0xFFFFFFFF, false );
+  ASSERT( fixpoint_is_negative( &val ) == false );
+
+  // Test 3: Maximum negative value
+  fixpoint_init( &val, 0xFFFFFFFF, 0xFFFFFFFF, true );
+  ASSERT( fixpoint_is_negative( &val ) == true );
+}
+
+void test_another_negate( TestObjs *objs) {
+  fixpoint_t result;
+  // Test 1: Maximum positive value
+  result = objs->max;
+  fixpoint_negate( &result );
+  ASSERT( result.whole == objs->max.whole );
+  ASSERT( result.frac == objs->max.frac );
+  ASSERT( true == result.negative );
+
+  // Test 2: Maximum negative value (should become positive)
+  fixpoint_t max_neg;
+  fixpoint_init( &max_neg, 0xFFFFFFFF, 0xFFFFFFFF, true );
+  fixpoint_negate( &max_neg );
+  ASSERT( max_neg.whole == 0xFFFFFFFF );
+  ASSERT( max_neg.frac == 0xFFFFFFFF );
+  ASSERT( false == max_neg.negative );
+  
+}
+
 void test_another_add( TestObjs *objs ) {
   fixpoint_t aggregate;
 
-  // test for cases of same magnitude but opposite sign -> 0
+  // addition with borrow that invokes subtraction-like case 1.0 + -0.00000001
+  fixpoint_t one = objs->one;
+  fixpoint_t negative_min = objs->min;
+  negative_min.negative = true;
+
+  ASSERT(fixpoint_add(&aggregate, &one, &negative_min) == RESULT_OK);
+  ASSERT(aggregate.whole == 0);
+  ASSERT(aggregate.frac == 0xFFFFFFFF);
+  ASSERT(aggregate.negative == false);
+
+  // test for cases of same magnitude but opposite sign --> 0
   fixpoint_t negative_one = objs->one;
   negative_one.negative = true;
   ASSERT(fixpoint_add(&aggregate, &objs->one, &negative_one) == RESULT_OK);
@@ -374,11 +461,41 @@ void test_another_add( TestObjs *objs ) {
 void test_another_sub( TestObjs *objs ) {
   fixpoint_t aggregate;
 
+  // subtraction with a borrowing, case is 1.0 – 0.00000001
+  ASSERT(fixpoint_sub(&aggregate, &objs->one, &objs->min) == RESULT_OK);
+  ASSERT(aggregate.whole == 0);
+  ASSERT(aggregate.frac == 0xFFFFFFFF);
+  ASSERT(aggregate.negative == false);
 
+  // negative result case next of 0 - 1.5
+  ASSERT(fixpoint_sub(&aggregate, &objs->zero, &objs->one_and_one_half) == RESULT_OK);
+  ASSERT(aggregate.whole == 1);
+  ASSERT(aggregate.frac == 0x80000000);
+  ASSERT(aggregate.negative == true);
 }
 
 void test_another_mul( TestObjs *objs ) {
+  fixpoint_t aggregate;
 
+  // start with fraction times fraction case 0.5 * 0.5 = 0.25
+  ASSERT(fixpoint_mul(&aggregate, &objs->one_half, &objs->one_half) == RESULT_OK);
+  ASSERT(aggregate.frac == 0x40000000);
+  ASSERT(aggregate.whole == 0);
+
+  // next try out negative and positive mul
+  ASSERT(fixpoint_mul(&aggregate, &objs->neg_eleven, &objs->one) == RESULT_OK);
+  ASSERT(aggregate.frac == 0);
+  ASSERT(aggregate.whole == 11);
+  ASSERT(aggregate.negative == true);
+
+  // check for overflow here as case max * 2
+  fixpoint_t two;
+  TEST_FIXPOINT_INIT(&two, 2, 0, false);
+  ASSERT(fixpoint_mul(&aggregate, &objs->max, &two) & RESULT_OVERFLOW);
+
+  // last and comparatively check for underflw as case 0.00000001 × 0.00000001
+  fixpoint_t tiny = objs->min;
+  ASSERT(fixpoint_mul(&aggregate, &tiny, &tiny) & RESULT_UNDERFLOW);
 }
 
 void test_another_compare( TestObjs *objs ) {
@@ -405,6 +522,7 @@ void test_another_format_hex( TestObjs *objs ) {
   fixpoint_t value;
   TEST_FIXPOINT_INIT(&value, 0, 0x40000000, false); // this is 0.4
   fixpoint_format_hex(&string, &value);
+
   ASSERT(strcmp(string.str, "0.4") == 0);
 
   // this is for negative integer
@@ -412,4 +530,18 @@ void test_another_format_hex( TestObjs *objs ) {
   ASSERT(strcmp(string.str, "-b.0") == 0);
 }
 
+void test_another_parse_hex( TestObjs *objs ) {
+  fixpoint_t value;
 
+  // check if too many digitss
+  ASSERT(false == fixpoint_parse_hex(&value, FIXPOINT_STR("123456789.0")));
+
+  // check for invalid characters
+  ASSERT(false == fixpoint_parse_hex(&value, FIXPOINT_STR("1G.0")));
+
+  // check for any possible trailing junk around
+  ASSERT(false == fixpoint_parse_hex(&value, FIXPOINT_STR("1.0xyz")));
+
+  // here you could have an empty string
+  ASSERT(false == fixpoint_parse_hex(&value, FIXPOINT_STR("")));
+}
