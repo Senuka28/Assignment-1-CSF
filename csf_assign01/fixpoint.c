@@ -11,6 +11,42 @@
 
 // TODO: add helper functions
 
+typedef struct {
+ uint64_t hi;
+ uint64_t lo;
+} uint128_sim;
+
+
+static uint128_sim mul64(uint64_t a, uint64_t b) {
+ uint128_sim res;
+
+
+   // split a and b
+   uint64_t a_hi = a >> 32;
+   uint64_t a_lo = a & 0xFFFFFFFFULL;
+   uint64_t b_hi = b >> 32;
+   uint64_t b_lo = b & 0xFFFFFFFFULL;
+
+
+   // find partial products with above vals
+   uint64_t product0 = a_lo * b_lo; // low * low
+   uint64_t product1 = a_lo * b_hi; // low * high
+   uint64_t product2 = a_hi * b_lo; // high * low
+   uint64_t product3 = a_hi * b_hi; // high * high
+
+
+   // accumulate the results into 128 bits
+   uint64_t middle = (p0 >> 32) + (p1 & 0xFFFFFFFFULL) + (p2 & 0xFFFFFFFFULL);
+
+
+   res.lo = (p0 & 0xFFFFFFFFULL) | (mid << 32);
+   res.hi = p3 + (p1 >> 32) + (p2 >> 32) + (mid >> 32);
+
+
+   return res;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 // Public API functions
 ////////////////////////////////////////////////////////////////////////
@@ -137,8 +173,37 @@ fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
 
 result_t
 fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
-  
+ // TODO: implement
+ uint64_t left_val = ((uint64_t) left->whole << 32) | left->frac;
+ uint64_t right_val = ((uint64_t) right->whole << 32) | right->frac;
+
+
+ uint128_sim multiplication = mul64(left_val, right_val); // 128-bit product representation
+ uint64_t middle = (multiplication.hi << 32) | (multiplication.low >> 32); // take the middle 64
+
+
+ // here shift middle 64 bits into result frac/whole and determine negativity
+ result->whole = (uint32_t) (middle >> 32);
+ result->frac = (uint32_t) (middle << 32);
+ result->negative = (left->negative != right->negative);
+
+
+  if (multiplication.hi >> 32) {
+   return RESULT_OVERFLOW; // high 32 bits not 0
+ }
+ if (multiplication.lo << 32) {
+   return RESULT_UNDERFLOW; // low 32 bits not 0
+ }
+
+
+ if (result->whole == 0 && result->frac == 0) {
+   result->negative = false; // false because 0 isn't negative
+ }
+
+
+ return RESULT_OK;
 }
+
 
 int
 fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
