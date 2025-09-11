@@ -18,32 +18,30 @@ typedef struct {
 
 
 static uint128_sim mul64(uint64_t a, uint64_t b) {
- uint128_sim res;
+  
+  uint128_sim res;
+  // split a and b
+  uint64_t a_hi = (uint64_t) (a >> 32);
+  uint64_t a_lo = (uint64_t) (a & 0xFFFFFFFFULL);
+  uint64_t b_hi = (uint64_t) (b >> 32);
+  uint64_t b_lo = (uint64_t) (b & 0xFFFFFFFFULL);
+
+  // find partial products with above vals
+  uint64_t product0 = (uint64_t) a_lo * b_lo; // low * low
+  uint64_t product1 = (uint64_t) a_lo * b_hi; // low * high
+  uint64_t product2 = (uint64_t) a_hi * b_lo; // high * low
+  uint64_t product3 = (uint64_t) a_hi * b_hi; // high * high
 
 
-   // split a and b
-   uint64_t a_hi = a >> 32;
-   uint64_t a_lo = a & 0xFFFFFFFFULL;
-   uint64_t b_hi = b >> 32;
-   uint64_t b_lo = b & 0xFFFFFFFFULL;
+  // accumulate the results into 128 bits
+  uint64_t middle = (product0 >> 32) + (product1 & 0xFFFFFFFFULL) + (product2 & 0xFFFFFFFFULL);
 
 
-   // find partial products with above vals
-   uint64_t product0 = a_lo * b_lo; // low * low
-   uint64_t product1 = a_lo * b_hi; // low * high
-   uint64_t product2 = a_hi * b_lo; // high * low
-   uint64_t product3 = a_hi * b_hi; // high * high
+  res.lo = (product0 & 0xFFFFFFFFULL) | (middle << 32);
+  res.hi = product3 + (product1 >> 32) + (product2 >> 32) + (middle >> 32);
 
 
-   // accumulate the results into 128 bits
-   uint64_t middle = (product0 >> 32) + (product1 & 0xFFFFFFFFULL) + (product2 & 0xFFFFFFFFULL);
-
-
-   res.lo = (product0 & 0xFFFFFFFFULL) | (middle << 32);
-   res.hi = product3 + (product1 >> 32) + (product2 >> 32) + (middle >> 32);
-
-
-   return res;
+  return res;
 }
 
 
@@ -51,6 +49,7 @@ static uint128_sim mul64(uint64_t a, uint64_t b) {
 // Public API functions
 ////////////////////////////////////////////////////////////////////////
 
+// Initialize fixpoint value with whole, fractional, and sign fields.
 void
 fixpoint_init( fixpoint_t *val, uint32_t whole, uint32_t frac, bool negative ) {
   val->whole = whole;
@@ -62,21 +61,25 @@ fixpoint_init( fixpoint_t *val, uint32_t whole, uint32_t frac, bool negative ) {
   }
 }
 
+// Return the whole part of a fixpoint value.
 uint32_t
 fixpoint_get_whole( const fixpoint_t *val ) {
   return val->whole;
 }
 
+// Return the fractional part of a fixpoint value.
 uint32_t
 fixpoint_get_frac( const fixpoint_t *val ) {
   return val->frac;
 }
 
+// Return true if the fixpoint value is negative.
 bool
 fixpoint_is_negative( const fixpoint_t *val ) {
   return val->negative;
 }
 
+// Negate a fixpoint value (unless it is 0).
 void
 fixpoint_negate( fixpoint_t *val ) {
   if(val->frac != 0 || val->whole != 0){
@@ -87,6 +90,7 @@ fixpoint_negate( fixpoint_t *val ) {
   }
 }
 
+// Add two fixpoint values, stores the result and reports overflow/underflow.
 result_t
 fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
   
@@ -162,6 +166,7 @@ fixpoint_add( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
   }
 }
 
+// Subtract right from left by negating right and adding.
 result_t
 fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
   // take add function from above and negate the right side 
@@ -170,42 +175,44 @@ fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
   fixpoint_negate(&negated_right);
   return fixpoint_add(result, left, &negated_right);
 }
+
+// Multiply two fixpoint values, stores the result and reports overflow/underflow.
 result_t
 fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
- // TODO: implement
- uint64_t left_val = ((uint64_t) left->whole << 32) | left->frac;
- uint64_t right_val = ((uint64_t) right->whole << 32) | right->frac;
+  uint64_t left_val = ((uint64_t) left->whole << 32) | left->frac;
+  uint64_t right_val = ((uint64_t) right->whole << 32) | right->frac;
 
- uint128_sim multiplication = mul64(left_val, right_val); // 128-bit product representation
- uint64_t middle = (multiplication.hi << 32) | (multiplication.lo >> 32); // take the middle 64
+  uint128_sim multiplication = mul64(left_val, right_val); // 128-bit product representation
+  uint64_t middle = (multiplication.lo >> 32) | (multiplication.hi << 32); // take the middle 64
 
+  // here shift middle 64 bits into result frac/whole and determine negativity
+  result->whole = (uint32_t) (middle >> 32);
+  result->frac = (uint32_t) (middle & 0xFFFFFFFF);
+  result->negative = (left->negative != right->negative); 
 
- // here shift middle 64 bits into result frac/whole and determine negativity
- result->whole = (uint32_t) (middle >> 32);
- result->frac = (uint32_t) (middle & 0xFFFFFFFFULL);
- result->negative = (left->negative != right->negative);
-
-  result_t ok = RESULT_OK;
-
+  if ((multiplication.hi >> 32) && (multiplication.lo & 0xFFFFFFFFULL) != 0) {
+    return RESULT_OVERFLOW | RESULT_UNDERFLOW;
+  }
   if (multiplication.hi >> 32) {
-   ok |= RESULT_OVERFLOW; // high 32 bits not 0
- }
- if ((multiplication.lo & 0xFFFFFFFFULL) != 0) {
-   ok |= RESULT_UNDERFLOW; // low 32 bits not 0
- }
+    return RESULT_OVERFLOW; // high 32 bits not 0
+  }
+  if ((multiplication.lo & 0xFFFFFFFFULL) != 0) {
+    return RESULT_UNDERFLOW; // low 32 bits not 0
+  }
+
+  if (result->whole == 0 && result->frac == 0 && !(multiplication.hi >> 32) && !(multiplication.lo & 0xFFFFFFFFULL)) {
+    result->negative = false; // false because 0 isn't negative
+  }
 
 
- if (result->whole == 0 && result->frac == 0) {
-   result->negative = false; // false because 0 isn't negative
- }
-
-
- return ok;
+  return RESULT_OK;
 }
 
+// Compare two fixpoint values: returns -1 if left < right, 0 if equal, 1 if left > right.
 int
 fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
   
+  // if one number is negative and other isn't
   if (left->negative && !right->negative){
     return -1;
   }
@@ -213,6 +220,7 @@ fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
     return 1;
   }
   
+  // same sign
   if(left->whole > right-> whole){
     return left->negative ? -1 : 1;
   }
@@ -220,6 +228,7 @@ fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
     return left->negative ? 1 : -1;
   }
 
+  // equal wholes
   if(left->whole == right->whole){
     if(left->frac > right->frac){
       return left->negative ? -1 : 1;
@@ -233,6 +242,7 @@ fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
   }
 }
 
+// Format a fixpoint value as a hexadecimal string.
 void
 fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
     char whole[9];
@@ -250,6 +260,7 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
       fraction[--len] = '\0';
     }
 
+    // if fraction is 0
     if (len == 1 && fraction[0] == '0') {
         if (val->negative) {
             snprintf(s->str, sizeof(s->str), "-%s.0", whole);
@@ -266,6 +277,7 @@ fixpoint_format_hex( fixpoint_str_t *s, const fixpoint_t *val ) {
 
 }
 
+// Parse a hexadecimal string into a fixpoint value, returning true if valid.
 bool
 fixpoint_parse_hex( fixpoint_t *val, const fixpoint_str_t *s ) {
   if (val == NULL || s == NULL || s->str == NULL) {
