@@ -170,7 +170,6 @@ fixpoint_sub( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
   fixpoint_negate(&negated_right);
   return fixpoint_add(result, left, &negated_right);
 }
-
 result_t
 fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *right ) {
  // TODO: implement
@@ -186,12 +185,13 @@ fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
  result->frac = (uint32_t) (middle & 0xFFFFFFFFULL);
  result->negative = (left->negative != right->negative);
 
+  result_t ok = RESULT_OK;
 
   if (multiplication.hi >> 32) {
-   return RESULT_OVERFLOW; // high 32 bits not 0
+   ok |= RESULT_OVERFLOW; // high 32 bits not 0
  }
  if ((multiplication.lo & 0xFFFFFFFFULL) != 0) {
-   return RESULT_UNDERFLOW; // low 32 bits not 0
+   ok |= RESULT_UNDERFLOW; // low 32 bits not 0
  }
 
 
@@ -200,24 +200,32 @@ fixpoint_mul( fixpoint_t *result, const fixpoint_t *left, const fixpoint_t *righ
  }
 
 
- return RESULT_OK;
+ return ok;
 }
-
 
 int
 fixpoint_compare( const fixpoint_t *left, const fixpoint_t *right ) {
-  if(left->whole > right-> whole){
-    return 1;
-  }
-  if(left->whole < right->whole){
+  
+  if (left->negative && !right->negative){
     return -1;
   }
+  if(!left->negative && right->negative){
+    return 1;
+  }
+  
+  if(left->whole > right-> whole){
+    return left->negative ? -1 : 1;
+  }
+  if(left->whole < right->whole){
+    return left->negative ? 1 : -1;
+  }
+
   if(left->whole == right->whole){
     if(left->frac > right->frac){
-      return 1;
+      return left->negative ? -1 : 1;
     }
     if(left->frac < right->frac){
-      return -1;
+      return left->negative ? 1 : -1;
     }
     if(left->frac == right->frac){
       return 0;
@@ -281,7 +289,12 @@ fixpoint_parse_hex( fixpoint_t *val, const fixpoint_str_t *s ) {
   if(sscanf(str, "%8x%n", &whole, &whole_digits) != 1 || whole_digits == 0 || whole_digits > 8){
     return false;
   }
+  if (whole_digits > 1 && *str == '0') {   //reject leading zeros unless only 0
+    return false;
+  }
   val->whole = whole;
+
+
 
   if (str[whole_digits] != '.') {
         return false;
@@ -302,6 +315,15 @@ fixpoint_parse_hex( fixpoint_t *val, const fixpoint_str_t *s ) {
     val->frac = fraction << (4 * (8 - frac_digits)); 
   } else {
     val->frac = 0;
+  }
+
+  if (fraction_str[frac_digits] != '\0') {   //reject trailing junk after fraction
+    return false;
+  }
+
+  //no negative 0
+  if (val->whole == 0 && val->frac == 0) {
+    val->negative = false;
   }
     
   return true;
